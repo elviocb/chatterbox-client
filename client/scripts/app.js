@@ -15,30 +15,28 @@ app.init = function(){
   
   // fetch the server using an interval of 1 second
   setInterval(app.fetch.bind(app), 1000);
+
+  // Define the Event handler to the form
+  $('#send').on('submit', app.handleSubmit);
 };
 
-// fetch the server for new messages
-app.fetch = function(){
-  // Fetch the server and push into the page
-  $.ajax({
-    // always use this url
-    url: app.server,
-    type: 'GET',
-    data: { order: "-updatedAt", limit: 200 },
-    contentType: 'application/json',
-    success: function (data) {
-      console.log('fetched');
-      //creat a loop that iterates over data and send to messageCreate function.
-      app.splitRooms(data);
-    },
-    error: function (data) {
-      // see: https://developer.mozilla.org/en-US/docs/Web/API/console.error
-      console.error('chatterbox: Failed to send message');
-    }
-  });
-};
+app.handleSubmit = function(e){
+  e.preventDefault();
 
-app.post = function(message){
+  var objMsg = {
+    username: $('#username').val(),
+    text: $('#message').val(),
+    roomname: $('#room').val()
+  };
+  console.log(objMsg);
+  var msgString = JSON.stringify(objMsg);
+
+  // send the message to the server
+  app.sendMessage(msgString);
+  // console.log(msgString);
+}
+
+app.sendMessage = function(message){
   // Fetch the server and push into the page
   $.ajax({
     // always use this url
@@ -57,18 +55,42 @@ app.post = function(message){
     }
   });
 };
+
+// fetch the server for new messages
+app.fetch = function(){
+  // Fetch the server and push into the page
+  $.ajax({
+    // always use this url
+    url: app.server,
+    type: 'GET',
+    data: { order: "-updatedAt", limit: 200 },
+    contentType: 'application/json',
+    success: function (data) {
+      // console.log('fetched');
+      // console.log(data);
+      // debugger;
+      //creat a loop that iterates over data and send to messageCreate function.
+      app.splitRooms(data);
+    },
+    error: function (data) {
+      // see: https://developer.mozilla.org/en-US/docs/Web/API/console.error
+      console.error('chatterbox: Failed to send message');
+    }
+  });
+};
+
 // update the feed's html
 app.updateFeed = function(){
-  console.log('preparing to update feed');
+  // console.log('preparing to update feed');
   $('#feed').html("");
   for (var i = 0; i < app.feed.length; i++) {
     var message = app.feed[i];
-    this.createMsgHTML(message);
+    app.createMsgHTML(message);
   }
 };
 // create the necessary html's elements for the message to insert into the feed
 app.createMsgHTML = function(message){
-  console.log("message's html created");
+  // console.log("message's html created");
   // clan the dom
   // create HTML's elements
   var div = $('<div class="message">'),
@@ -102,40 +124,17 @@ app.splitRooms = function(array){
     //update the feed property
     this["feed"] = !this["feed"] ? [] : array.results;
   }
-  console.log('rooms separated');
+  // console.log('rooms separated');
   this.updateFeed();
 };
 
 
-app.sendMessage = function(message){
-  var objMsg = {
-    username: $('#username').val(),
-    text: $('#message').val(),
-    roomname: $('#room').val()
-  };
-  var msgString = JSON.stringify(objMsg);
-  console.log(msgString
-    );
-  // send the message to the server
-  this.post(msgString);
-};
 //start the application
-app.init();
-
-
 $(document).ready(function(){
-  $('form').on('submit', function(event){
-  // prevents popup
-  event.preventDefault();
-  // capture the input value
-  app.sendMessage();
-  // clean the inputs
-  $('#message').val('');
-  $('#username').val('');
-  $('#room').val('');
-  });
+  app.init();
+});
 
-})
+
 
 
 
