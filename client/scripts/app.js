@@ -1,12 +1,28 @@
 
 var app = {};
 app.rooms = {};
+app.server = 'https://api.parse.com/1/classes/chatterbox';
+
+//start the application.
+app.init = function(){
+  // log the status of the application
+  console.log('chatterbox started');
+  // catch the username
+  app.username = window.location.search.substr(10);
+
+  //fetch the server and load the messages
+  app.fetch();
+  
+  // fetch the server using an interval of 1 second
+  setInterval(app.fetch.bind(app), 1000);
+};
+
 // fetch the server for new messages
 app.fetch = function(){
   // Fetch the server and push into the page
   $.ajax({
     // always use this url
-    url: 'https://api.parse.com/1/classes/chatterbox',
+    url: app.server,
     type: 'GET',
     data: { order: "-updatedAt", limit: 200 },
     contentType: 'application/json',
@@ -90,12 +106,6 @@ app.splitRooms = function(array){
   this.updateFeed();
 };
 
-//start the application.
-app.init = function(){
-  this.fetch();
-    // update the DOM
-  setInterval(function(){app.fetch()}, 1000);
-};
 
 app.sendMessage = function(message){
   var objMsg = {
