@@ -1,6 +1,6 @@
 
 var app = {};
-app.rooms = {};
+// Server's API URL 
 app.server = 'https://api.parse.com/1/classes/chatterbox';
 
 //start the application.
@@ -9,6 +9,9 @@ app.init = function(){
   console.log('chatterbox started');
   // catch the username
   app.username = window.location.search.substr(10);
+
+  // object to store the messages that was already loaded
+  app.onscreenMessages = {};
 
   //fetch the server and load the messages
   app.fetch();
@@ -28,12 +31,16 @@ app.handleSubmit = function(e){
     text: $('#message').val(),
     roomname: $('#room').val()
   };
-  console.log(objMsg);
-  var msgString = JSON.stringify(objMsg);
+  
+  // clean the fields
+  $('#message').val('');
+  $('#username').val('');
+  $('#room').val('');
 
-  // send the message to the server
+  // Stringify the message
+  var msgString = JSON.stringify(objMsg);
+  
   app.sendMessage(msgString);
-  // console.log(msgString);
 }
 
 app.sendMessage = function(message){
@@ -58,76 +65,47 @@ app.sendMessage = function(message){
 
 // fetch the server for new messages
 app.fetch = function(){
-  // Fetch the server and push into the page
   $.ajax({
-    // always use this url
     url: app.server,
     type: 'GET',
-    data: { order: "-updatedAt", limit: 200 },
+    data: { order: "-createdAt", limit: 200 },
     contentType: 'application/json',
-    success: function (data) {
-      // console.log('fetched');
-      // console.log(data);
-      // debugger;
+    success: function (json) {
       //creat a loop that iterates over data and send to messageCreate function.
-      app.splitRooms(data);
+      app.displayMessages(json.results);
     },
     error: function (data) {
-      // see: https://developer.mozilla.org/en-US/docs/Web/API/console.error
       console.error('chatterbox: Failed to send message');
     }
   });
 };
 
-// update the feed's html
-app.updateFeed = function(){
-  // console.log('preparing to update feed');
-  $('#feed').html("");
-  for (var i = 0; i < app.feed.length; i++) {
-    var message = app.feed[i];
-    app.createMsgHTML(message);
+app.displayMessages = function(messages){
+  for( var i = 0; i < messages.length; i++) {
+    app.displayMessage(messages[i]);
   }
 };
+
+app.displayMessage = function(message){
+  if(!app.onscreenMessages[message.objectId]) {
+    // Send the object to render e return a set of HTML's elements 
+    var $msg = app.renderMessage(message);
+    // Send the message into DOM
+    $('#feed').prepend($msg);
+    // Flag this message as already displayed (avoid unnecessary render)
+    app.onscreenMessages[message.objectId] = true;
+  }
+};
+
 // create the necessary html's elements for the message to insert into the feed
-app.createMsgHTML = function(message){
-  // console.log("message's html created");
-  // clan the dom
+app.renderMessage = function(message){
   // create HTML's elements
-  var div = $('<div class="message">'),
-      a = $('<a href="#" class="username" onclick=app.fetch()/>'),
-      p = $('<p>');
+  var $user = $('<div>', { class: 'user' }).text(message.username);
+  var $text = $('<div>', { class: 'text' }).text(message.text);
   // Sets the message's content into the elements
-  $(a).text(message.username);
-  $(p).text(message.text);
-  // Creates the chain
-  $('#feed').append(div).append(a).append(p);
+  var $message = $('<div>', {class: 'chat', 'data-id': message.objectId}).append($user, $text);
+  return $message;
 };
-
-app.splitRooms = function(array){
-
-  for(var i = 0; i < array.results.length; i++ ){
-    var roomName = array.results[i].roomname;
-    var message = array.results[i];
-
-    // Checks whether rom has name
-    if(roomName === undefined || roomName === ""){
-      this.rooms['anonymous'] = [];
-      this.rooms['anonymous'].push(message);
-    }
-    // If there's no room, create a new property
-    if(!this.rooms[roomName]){
-      this.rooms[roomName] = [];
-    }
-    // push the message to the room
-    this.rooms[roomName].push(message);
-
-    //update the feed property
-    this["feed"] = !this["feed"] ? [] : array.results;
-  }
-  // console.log('rooms separated');
-  this.updateFeed();
-};
-
 
 //start the application
 $(document).ready(function(){
